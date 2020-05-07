@@ -7,6 +7,7 @@
 //============================================================================
 
 #include "CJOCh264encoder.h"
+#include "data.h"
 
 int main(int argc, char **argv)
 {
@@ -17,10 +18,10 @@ int main(int argc, char **argv)
 	puts("It is made only for learning purposes");
 	puts("**********************************************************");
 
-	if (argc < 3)
+	if (argc < 2)
 	{
 		puts("------------------------------------------------------------------------");
-		puts("Usage: h264mincoder input.yuv output.h264 [image width] [image height] [fps] [AR SARw] [AR SARh]");
+		puts("Usage: h264mincoder output.h264 [image width] [image height] [fps] [AR SARw] [AR SARh]");
 		puts("Default parameters: Image width=128 Image height=96 Fps=25 SARw=1 SARh=1");
 		puts("Assumptions: Input file is yuv420p");
 		puts("------------------------------------------------------------------------");
@@ -28,7 +29,7 @@ int main(int argc, char **argv)
 		return nRc;
 	}
 
-	char szInputFile[512];
+	// char szInputFile[512];
 	char szOutputFile[512];
 	int nImWidth = 128;
 	int nImHeight = 96;
@@ -36,61 +37,61 @@ int main(int argc, char **argv)
 	int nSARw = 1;
 	int nSARh = 1;
 
-	//Get input file
-	strncpy (szInputFile,argv[1],512);
+	// //Get input file
+	// strncpy (szInputFile,argv[1],512);
 
 	//Get output file
-	strncpy (szOutputFile,argv[2],512);
+	strncpy (szOutputFile,argv[1],512);
 
 	//Get image width
-	if (argc > 3)
+	if (argc > 2)
 	{
-		nImWidth = (int) atol (argv[3]);
+		nImWidth = (int) atol (argv[2]);
 		if (nImWidth == 0)
 			puts ("Error reading image width input parameter");
 	}
 
 	//Get image height
-	if (argc > 4)
+	if (argc > 3)
 	{
-		nImHeight = (int) atol (argv[4]);
+		nImHeight = (int) atol (argv[3]);
 		if (nImHeight == 0)
 			puts ("Error reading image height input parameter");
 	}
 
 	//Get fps
-	if (argc > 5)
+	if (argc > 4)
 	{
-		nFps = (int) atol (argv[5]);
+		nFps = (int) atol (argv[4]);
 		if (nFps == 0)
 			puts ("Error reading fps input parameter");
 	}
 
 	//Get SARw
-	if (argc > 6)
+	if (argc > 5)
 	{
-		nSARw = (int) atol (argv[6]);
+		nSARw = (int) atol (argv[5]);
 		if (nSARw == 0)
 			puts ("Error reading AR SARw input parameter");
 	}
 
 	//Get SARh
-	if (argc > 7)
+	if (argc > 6)
 	{
-		nSARh = (int) atol (argv[7]);
+		nSARh = (int) atol (argv[6]);
 		if (nSARh == 0)
 			puts ("Error reading AR SARh input parameter");
 	}
 
-	FILE *pfsrc = NULL;
+	// FILE *pfsrc = NULL;
 	FILE *pfdst = NULL;
 
-	pfsrc = fopen (szInputFile,"rb");
-	if (pfsrc == NULL)
-	{
-		puts ("Error opening source file");
-		return nRc;
-	}
+	// pfsrc = fopen (szInputFile,"rb");
+	// if (pfsrc == NULL)
+	// {
+	// 	puts ("Error opening source file");
+	// 	return nRc;
+	// }
 
 	pfdst = fopen (szOutputFile,"wb");
 	if (pfdst == NULL)
@@ -111,7 +112,8 @@ int main(int argc, char **argv)
 	char szLog[256];
 
 	//Iterate through all frames
-	while (! feof(pfsrc))
+	int idx = 0;
+	while (idx < sizeof(yuv_data))
 	{
 		//Get frame pointer to fill
 		void *pFrame = GetFramePtr ();
@@ -120,26 +122,33 @@ int main(int argc, char **argv)
 		unsigned int nFrameSize = GetFrameSize();
 
 		//Load frame from disk and load it into pFrame
-		size_t nreaded = fread (pFrame,1, nFrameSize, pfsrc);
-		if (nreaded != nFrameSize)
-		{
-			if (! feof(pfsrc)){
-				printf("Error: Reading frame");
-				goto error;
-			}
+		if(idx + nFrameSize > sizeof(yuv_data)){
+			break;
 		}
-		else
-		{
-			//Encode & save frame
-			CodeAndSaveFrame();
+		memcpy(pFrame, yuv_data + idx, nFrameSize);
+		// size_t nreaded = fread (pFrame,1, nFrameSize, pfsrc);
+		// if (nreaded != nFrameSize)
+		// {
+		// 	if (! feof(pfsrc)){
+		// 		printf("Error: Reading frame");
+		// 		goto error;
+		// 	}
+		// }
+		// else
+		// {
+		//Encode & save frame
+		CodeAndSaveFrame();
 
-			//Get the number of saved frames
-			nSavedFrames = GetSavedFrames();
+		//Get the number of saved frames
+		nSavedFrames = GetSavedFrames();
 
-			//Show the number of saved / encoded frames iin console
-			sprintf(szLog,"Saved frame num: %d", nSavedFrames - 1);
-			puts (szLog);
-		}
+		// advance index
+		idx += nFrameSize;
+
+		// //Show the number of saved / encoded frames iin console
+		// sprintf(szLog,"Saved frame num: %d", nSavedFrames - 1);
+		// puts (szLog);
+		// }
 	}
 
 	//Close encoder
@@ -150,8 +159,8 @@ int main(int argc, char **argv)
 
 
 	//Close previously opened files
-	if (pfsrc != NULL)
-		fclose (pfsrc);
+	// if (pfsrc != NULL)
+	// 	fclose (pfsrc);
 
 	if (pfdst != NULL)
 		fclose (pfdst);
